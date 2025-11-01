@@ -182,10 +182,12 @@ async fn extract_full_body(content_length: Option<u64>, body: &mut Body) -> S3Re
         .await
         .map_err(|e| S3Error::with_source(S3ErrorCode::InternalError, e))?;
 
+    // Validate Content-Length if provided, but don't require it (supports chunked encoding)
     if bytes.is_empty().not() {
-        let content_length = content_length.ok_or(S3ErrorCode::MissingContentLength)?;
-        if bytes.len() as u64 != content_length {
-            return Err(s3_error!(IncompleteBody));
+        if let Some(content_length) = content_length {
+            if bytes.len() as u64 != content_length {
+                return Err(s3_error!(IncompleteBody));
+            }
         }
     }
 
